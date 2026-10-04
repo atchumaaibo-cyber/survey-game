@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ff8a3d">
+<title>アンケートゲーム</title>
+<style>
+  :root{
+    --bg1:#fff3e6; --bg2:#ffe3d0;
+    --ink:#3a2b22; --ink-sub:#8a7466; --card:#fff;
+    --accent:#ff8a3d; --accent-dark:#d96b24;
+    --guess:#3d8bff; --guess-dark:#2a66c4;
+    --ok:#1fa971; --ng:#e8604c; --rare:#9b5de5;
+    --shadow:0 4px 0 rgba(0,0,0,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{min-height:100%}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--ink);background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 100%);
+    background-attachment:fixed;touch-action:manipulation;-webkit-text-size-adjust:100%;
+  }
+  #app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+  .bar{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 0 10px;font-weight:800}
+  .bar .brand{color:var(--accent);font-size:.95rem}
+  .bar .who{flex:1;text-align:right;font-size:.9rem;color:var(--ink-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .score{background:var(--accent);color:#fff;border-radius:999px;padding:4px 12px;font-size:.9rem;white-space:nowrap}
+  .bar .score.hidden{display:none}
+  main{flex:1;display:flex;flex-direction:column;gap:14px;padding:6px 0}
+  .center{justify-content:center;align-items:center;text-align:center}
+  .hidden{display:none!important}
+
+  .card{background:var(--card);border-radius:18px;padding:18px 16px;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+  .title{font-size:clamp(1.6rem,7vw,2.1rem);font-weight:900;line-height:1.35}
+  .title small{display:block;font-size:.6em;color:var(--accent);margin-bottom:4px}
+  .lead{font-size:1.02rem;line-height:1.9;font-weight:700}
+  .lead b{color:var(--accent)}
+  .note{font-size:.85rem;color:var(--ink-sub);line-height:1.7}
+  .link{color:var(--ink-sub);font-size:.85rem;text-decoration:underline;background:none;border:none;font-family:inherit;cursor:pointer;padding:8px}
+
+  input[type=text]{
+    width:100%;font:inherit;font-size:1.25rem;font-weight:700;padding:14px 16px;
+    border:2px solid #e9d9cc;border-radius:14px;background:#fff;color:var(--ink);outline:none;
+  }
+  input[type=text]:focus{border-color:var(--accent)}
+
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:16px;
+    font-family:inherit;font-weight:800;color:#fff;cursor:pointer;box-shadow:var(--shadow);
+    transition:transform .06s,filter .06s;min-height:64px;font-size:1.25rem;letter-spacing:.03em;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:none;filter:brightness(.95)}
+  .btn:disabled{opacity:.45;box-shadow:none;transform:none;cursor:default}
+  .btn-primary{background:var(--accent);border-bottom:4px solid var(--accent-dark)}
+  .btn-big{min-height:80px;font-size:1.5rem}
+  .btn-sub{background:#fff;color:var(--ink-sub);border:2px solid #e9d9cc;box-shadow:none;min-height:50px;font-size:1rem}
+
+  .qmeta{text-align:center;font-weight:800;color:var(--ink-sub);font-size:.95rem}
+  .qmeta .tag{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:3px 14px;font-size:.9rem}
+  .qmeta .tag.practice{background:var(--guess)}
+  .qtext{font-size:clamp(1.25rem,5.4vw,1.6rem);font-weight:900;line-height:1.5;text-align:center;padding:20px 16px}
+
+  .sec{display:flex;flex-direction:column;gap:8px}
+  .sec-h{display:flex;align-items:center;gap:8px;font-weight:900;font-size:1.05rem;padding:0 4px}
+  .sec-h .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:#fff;font-size:.9rem;background:var(--accent)}
+  .sec.guess .sec-h .num{background:var(--guess)}
+  .opt{
+    display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:#fff;border:2px solid #e9d9cc;border-radius:14px;padding:13px 14px;
+    font:inherit;font-size:1.08rem;font-weight:800;color:var(--ink);cursor:pointer;
+    transition:border-color .1s,background .1s,transform .06s;
+  }
+  .opt:active{transform:scale(.985)}
+  .opt .lbl{flex:0 0 32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#f3e8de;color:var(--ink-sub);font-size:.95rem}
+  .opt.on{border-color:var(--accent);background:#fff4ea}
+  .opt.on .lbl{background:var(--accent);color:#fff}
+  .sec.guess .opt.on{border-color:var(--guess);background:#eef4ff}
+  .sec.guess .opt.on .lbl{background:var(--guess)}
+  .err{color:var(--ng);font-weight:700;text-align:center;font-size:.95rem;min-height:1.2em}
+
+  .big{font-size:clamp(1.5rem,7vw,2rem);font-weight:900;line-height:1.4}
+  .kv{display:flex;flex-direction:column;gap:10px}
+  .kv .row{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:#fff8f2}
+  .kv .row.g{background:#eef4ff}
+  .kv .k{font-size:.8rem;color:var(--ink-sub);font-weight:700}
+  .kv .v{font-size:1.2rem;font-weight:900}
+  .kv .judge{font-size:1rem;font-weight:900;margin-top:2px}
+  .judge.ok{color:var(--ok)} .judge.ng{color:var(--ink-sub)} .judge.rare{color:var(--rare)}
+
+  .pulse{display:inline-block;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+  .pts{display:flex;gap:10px}
+  .pts .box{flex:1;text-align:center;padding:12px 8px;border-radius:14px;background:#fff8f2}
+  .pts .box.total{background:var(--accent);color:#fff}
+  .pts .k{font-size:.78rem;font-weight:700;opacity:.85}
+  .pts .v{font-size:1.9rem;font-weight:900;line-height:1.1}
+  .pts .v small{font-size:.5em;margin-left:2px}
+
+  .mini{display:flex;flex-direction:column;gap:7px}
+  .mini .r{display:grid;grid-template-columns:26px 1fr 44px;align-items:center;gap:8px;font-size:.9rem;font-weight:800}
+  .mini .r .l{color:var(--ink-sub);text-align:center}
+  .mini .r .barw{position:relative;height:22px;background:#f3e8de;border-radius:6px;overflow:hidden}
+  .mini .r .bar{position:absolute;left:0;top:0;bottom:0;background:#f0c4a0;border-radius:6px;width:0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+  .mini .r.maj .bar{background:var(--accent)}
+  .mini .r.min .bar{background:var(--rare)}
+  .mini .r .txt{position:absolute;left:8px;top:0;line-height:22px;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;right:6px}
+  .mini .r .pct{text-align:right;color:var(--ink-sub)}
+  .mini .r.mine .txt{text-decoration:underline}
+  .legend{font-size:.78rem;color:var(--ink-sub);text-align:center}
+
+  .rule{display:flex;flex-direction:column;gap:8px;text-align:left}
+  .rule .li{display:flex;gap:10px;align-items:flex-start;font-weight:700;line-height:1.6}
+  .rule .li .ic{font-size:1.3rem;line-height:1.3}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#3a2b22;color:#fff;padding:10px 18px;border-radius:999px;font-weight:700;font-size:.9rem;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <span class="brand">アンケートゲーム</span>
+    <span id="who" class="who"></span>
+    <span id="score" class="score hidden"></span>
+  </header>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/store.js"></script>
+<script>
+(function(){
+  const { esc, LABELS } = Store;
+  const $main = document.getElementById('main');
+  const $who = document.getElementById('who');
+  const $score = document.getElementById('score');
+
+  let name = '';
+  try { name = localStorage.getItem('sg_name') || ''; } catch {}
+
+  let view = null;          // 最新の状態
+  let lastKey = null;       // 直前に描画した画面キー
+  let sel = { own: null, guess: null };   // 回答中の選択
+  let editing = false;      // 回答済みだが変更中
+  let down = false;
+
+  (async () => {
+    try { Store.init(); await Store.signIn(); }
+    catch (e) { $main.className = 'center'; $main.innerHTML = `<div class="card" style="width:100%"><p class="big" style="color:var(--ng)">設定エラー</p><p class="note" style="margin-top:10px;font-size:1rem">${esc(e.message)}</p></div>`; return; }
+    Store.subscribe('player', v => { view = v; render(); }, err => {
+      const isDown = !!err;
+      if (isDown !== down) { down = isDown; toast(isDown ? '接続が切れました… 再接続中' : '再接続しました'); }
+    });
+  })();
+
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  function qLabel(pub){
+    return pub.stage === 'practice' ? '練習問題' : `第${pub.qIndex + 1}問`;
+  }
+
+  // ------------------------------------------------ 描画
+  function render(){
+    const pub = view.public, me = view.me;
+
+    // ヘッダー
+    if (me) {
+      $who.textContent = me.name;
+      if (pub.stage === 'main' && me.entered) { $score.textContent = `${me.totals.total}点`; $score.classList.remove('hidden'); }
+      else $score.classList.add('hidden');
+    } else { $who.textContent = ''; $score.classList.add('hidden'); }
+
+    // 画面キー（変わった時だけ再描画。回答中の選択を守る）
+    let screen;
+    if (!me) screen = 'join';
+    else if (pub.phase === 'final') screen = 'final';
+    else if (pub.stage === 'main' && pub.qIndex < 0) screen = me.entered ? 'wait_main' : 'intro';
+    else if (pub.stage === 'main' && !me.entered) screen = 'spectate';
+    else if (pub.phase === 'idle') screen = 'wait_q';
+    else if (pub.phase === 'open') screen = (me.answer && !editing) ? 'answered' : 'question';
+    else if (pub.phase === 'closed') screen = 'closed';
+    else if (pub.phase === 'result') screen = 'result';
+    else screen = 'wait_q';
+
+    const key = [screen, pub.stage, pub.qIndex, pub.finalReveal, me && me.entered, me && me.totals.total].join('|');
+    if (key === lastKey) return;
+    lastKey = key;
+    if (screen !== 'question') editing = false;
+    if (['wait_q','idle','result','closed'].includes(screen)) sel = { own:null, guess:null };
+
+    R[screen](pub, me);
+  }
+
+  const R = {};
+
+  R.join = () => {
+    $main.className = 'center';
+    $main.innerHTML = `
+      <h1 class="title"><small>スマホで参加</small>アンケートゲーム</h1>
+      <div class="card" style="width:100%">
+        <p class="lead" style="margin-bottom:12px">名前かニックネームを入力してください</p>
+        <input id="nm" type="text" maxlength="20" placeholder="例：あっち" value="${esc(name)}" autocomplete="off">
+        <p id="err" class="err" style="margin-top:8px"></p>
+        <button id="joinBtn" class="btn btn-primary btn-big">参加する</button>
+      </div>
+      <p class="note">最後に上位3名だけ会場で発表します。<br>誰が何を選んだかは表示されません。</p>`;
+    const $nm = document.getElementById('nm');
+    const go = async () => {
+      const n = $nm.value.trim();
+      if (!n) { document.getElementById('err').textContent = '名前を入力してください'; return; }
+      try {
+        await Store.player.join(n);
+        name = n;
+        try { localStorage.setItem('sg_name', n); } catch {}
+      } catch (e) { document.getElementById('err').textContent = e.message; }
+    };
+    document.getElementById('joinBtn').onclick = go;
+    $nm.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  };
+
+  function waitScreen(title, sub, extra=''){
+    $main.className = 'center';
+    $main.innerHTML = `
+      <div class="card" style="width:100%">
+        <p class="big">${title}</p>
+        <p class="note" style="margin-top:10px;font-size:1rem">${sub}</p>
+      </div>
+      ${extra}
+      <button class="link" id="rename">名前を変更する</button>`;
+    document.getElementById('rename').onclick = () => { lastKey = null; R.join(); };
+  }
+
+  R.wait_q = (pub) => {
+    if (pub.stage === 'practice') waitScreen('参加できました！', '練習問題が始まるまで<br>そのままお待ちください <span class="pulse">…</span>');
+    else waitScreen(`${qLabel(pub)}`, `「${esc(pub.question.text)}」<br><br>まもなく回答受付が始まります <span class="pulse">…</span>`);
+  };
+  R.wait_main = () => waitScreen('本番参加 登録済み！', '本番開始までお待ちください <span class="pulse">…</span>');
+
+  R.question = (pub, me) => {
+    if (me.answer && editing) sel = { own: me.answer.own, guess: me.answer.guess };
+    const opts = (kind) => pub.question.options.map((o,i) =>
+      `<button class="opt ${sel[kind]===i?'on':''}" data-k="${kind}" data-i="${i}"><span class="lbl">${LABELS[i]}</span><span>${esc(o)}</span></button>`).join('');
+    $main.className = '';
+    $main.innerHTML = `
+      <p class="qmeta"><span class="tag ${pub.stage==='practice'?'practice':''}">${qLabel(pub)}</span>${pub.stage==='practice'?'得点には入りません':''}</p>
+      <div class="card qtext">${esc(pub.question.text)}</div>
+      <div class="sec own">
+        <div class="sec-h"><span class="num">1</span>自分の答え</div>
+        ${opts('own')}
+      </div>
+      <div class="sec guess">
+        <div class="sec-h"><span class="num">2</span>みんなの多数派はどれだと思う？</div>
+        ${opts('guess')}
+      </div>
+      <p id="err" class="err"></p>
+      <button id="sendBtn" class="btn btn-primary btn-big" ${sel.own===null||sel.guess===null?'disabled':''}>${editing?'回答を変更する':'回答する'}</button>
+      ${editing?'<button class="btn btn-sub" id="cancelBtn">変更をやめる</button>':''}`;
+    $main.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+      const k = b.dataset.k, i = Number(b.dataset.i);
+      sel[k] = i;
+      $main.querySelectorAll(`.opt[data-k=${k}]`).forEach(x => x.classList.toggle('on', Number(x.dataset.i)===i));
+      document.getElementById('sendBtn').disabled = !(sel.own!==null && sel.guess!==null);
+    });
+    document.getElementById('sendBtn').onclick = async () => {
+      const btn = document.getElementById('sendBtn'); btn.disabled = true;
+      try {
+        await Store.player.answer(sel.own, sel.guess);
+        editing = false; lastKey = null;
+        // 状態配信で回答済み画面に切り替わる（念のため即描画）
+        if (view) { view.me.answer = { own: sel.own, guess: sel.guess }; render(); }
+      } catch (e) { document.getElementById('err').textContent = e.message; btn.disabled = false; }
+    };
+    const c = document.getElementById('cancelBtn');
+    if (c) c.onclick = () => { editing = false; lastKey = null; render(); };
+  };
+
+  R.answered = (pub, me) => {
+    const o = pub.question.options;
+    $main.className = 'center';
+    $main.innerHTML = `
+      <p class="qmeta"><span class="tag ${pub.stage==='practice'?'practice':''}">${qLabel(pub)}</span></p>
+      <div class="card" style="width:100%">
+        <p class="big" style="color:var(--ok)">回答しました！</p>
+        <div class="kv" style="margin-top:14px">
+          <div class="row"><span class="k">自分の答え</span><span class="v">${LABELS[me.answer.own]}. ${esc(o[me.answer.own])}</span></div>
+          <div class="row g"><span class="k">多数派予想</span><span class="v">${LABELS[me.answer.guess]}. ${esc(o[me.answer.guess])}</span></div>
+        </div>
+        <p class="note" style="margin-top:14px;font-size:1rem">結果発表をお待ちください <span class="pulse">…</span></p>
+      </div>
+      <button class="btn btn-sub" id="editBtn">回答を変更する</button>`;
+    document.getElementById('editBtn').onclick = () => { editing = true; lastKey = null; render(); };
+  };
+
+  R.closed = (pub, me) => {
+    $main.className = 'center';
+    $main.innerHTML = `
+      <p class="qmeta"><span class="tag ${pub.stage==='practice'?'practice':''}">${qLabel(pub)}</span></p>
+      <div class="card" style="width:100%">
+        <p class="big">${me.answer ? '回答締切！' : '回答は締め切られました'}</p>
+        <p class="lead" style="margin-top:10px">集計中 <span class="pulse">…</span></p>
+        <p class="note" style="margin-top:10px">会場のスクリーンをご覧ください</p>
+      </div>`;
+  };
+
+  function miniChart(pub, me){
+    const r = pub.result, o = pub.question.options;
+    const max = Math.max(1, ...r.counts);
+    const rows = o.map((t,i) => {
+      const pct = r.total ? Math.round(r.counts[i]/r.total*100) : 0;
+      const cls = [r.majority.includes(i)?'maj':'', r.minority.includes(i)?'min':'', me.answer&&me.answer.own===i?'mine':''].join(' ');
+      return `<div class="r ${cls}"><span class="l">${LABELS[i]}</span><span class="barw"><span class="bar" data-w="${r.counts[i]/max*100}"></span><span class="txt">${esc(t)}</span></span><span class="pct">${pct}%</span></div>`;
+    }).join('');
+    return `<div class="mini">${rows}</div><p class="legend" style="margin-top:8px">回答 ${r.total}人 ／ <span style="color:var(--accent)">■</span>多数派 <span style="color:var(--rare)">■</span>少数派</p>`;
+  }
+
+  R.result = (pub, me) => {
+    const o = pub.question.options, r = pub.result, mine = me.result, practice = pub.stage === 'practice';
+    const majText = r.majority.map(i => LABELS[i]).join('・') || 'なし';
+    const minText = r.minority.map(i => LABELS[i]).join('・') || 'なし';
+    let body;
+    if (!mine) {
+      body = `<p class="lead" style="text-align:center">この問題は未回答でした</p>`;
+    } else {
+      const ownJ = mine.minorityPt ? `<span class="judge rare">💎 少数派！ +1点</span>` : (r.majority.includes(mine.own) ? `<span class="judge ng">多数派でした（少数派は ${minText}）</span>` : `<span class="judge ng">少数派は ${minText} でした</span>`);
+      const gJ = mine.majorityPt ? `<span class="judge ok">🎯 正解！ +1点</span>` : `<span class="judge ng">はずれ（多数派は ${majText}）</span>`;
+      body = `
+        <div class="kv">
+          <div class="row"><span class="k">あなたの答え</span><span class="v">${LABELS[mine.own]}. ${esc(o[mine.own])}</span>${ownJ}</div>
+          <div class="row g"><span class="k">あなたの多数派予想</span><span class="v">${LABELS[mine.guess]}. ${esc(o[mine.guess])}</span>${gJ}</div>
+        </div>`;
+    }
+    const pts = mine ? mine.minorityPt + mine.majorityPt : 0;
+    $main.className = '';
+    $main.innerHTML = `
+      <p class="qmeta"><span class="tag ${practice?'practice':''}">${qLabel(pub)} 結果</span></p>
+      <div class="card">${body}
+        ${practice
+          ? `<p class="note" style="text-align:center;margin-top:12px">練習なので得点には入りません<br>（本番なら今回 <b>${pts}点</b> でした）</p>`
+          : `<div class="pts" style="margin-top:14px"><div class="box"><div class="k">今回</div><div class="v">${pts}<small>点</small></div></div><div class="box total"><div class="k">現在の総合得点</div><div class="v">${me.totals.total}<small>点</small></div></div></div>`}
+      </div>
+      <div class="card">
+        <p class="qmeta" style="margin-bottom:10px">みんなの回答</p>
+        ${miniChart(pub, me)}
+      </div>
+      <p class="note" style="text-align:center">同じテーブルの人と「何選んだ？」と話してみてください<br>次の問題までお待ちください <span class="pulse">…</span></p>`;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      $main.querySelectorAll('.mini .bar').forEach(b => b.style.width = b.dataset.w + '%');
+    }));
+  };
+
+  function introCard(pub){
+    return `
+      <div class="card">
+        <p class="big" style="text-align:center;margin-bottom:12px">こんな感じのゲームです！</p>
+        <div class="rule">
+          <div class="li"><span class="ic">💎</span><span>自分の答えが<b>少数派</b>になったら <b>1点</b></span></div>
+          <div class="li"><span class="ic">🎯</span><span><b>多数派</b>を予想して当てても <b>1点</b></span></div>
+          <div class="li"><span class="ic">🏆</span><span>全 <b>${pub.totalQuestions}問</b> の総合得点で競います。上位3名を会場で発表！</span></div>
+        </div>
+      </div>`;
+  }
+
+  R.intro = (pub) => {
+    $main.className = '';
+    $main.innerHTML = `
+      ${introCard(pub)}
+      <button id="enterBtn" class="btn btn-primary btn-big">本番に参加する</button>
+      <p class="note" style="text-align:center">参加しない場合は、このままで大丈夫です。<br>途中から参加することもできます。</p>
+      <p id="err" class="err"></p>`;
+    document.getElementById('enterBtn').onclick = async () => {
+      try { await Store.player.enter(); } catch (e) { document.getElementById('err').textContent = e.message; }
+    };
+  };
+
+  R.spectate = (pub) => {
+    $main.className = '';
+    $main.innerHTML = `
+      <div class="card" style="text-align:center">
+        <p class="big">観戦モード</p>
+        <p class="note" style="margin-top:8px;font-size:1rem">本番には未参加です。会場のスクリーンでお楽しみください。</p>
+      </div>
+      ${introCard(pub)}
+      <button id="enterBtn" class="btn btn-primary">途中から本番に参加する</button>
+      <p id="err" class="err"></p>`;
+    document.getElementById('enterBtn').onclick = async () => {
+      try { await Store.player.enter(); } catch (e) { document.getElementById('err').textContent = e.message; }
+    };
+  };
+
+  R.final = (pub, me) => {
+    $main.className = 'center';
+    if (!me.entered) {
+      $main.innerHTML = `<div class="card" style="width:100%"><p class="big">ゲーム終了！</p><p class="note" style="margin-top:10px;font-size:1rem">ご参加ありがとうございました。<br>結果発表は会場のスクリーンをご覧ください。</p></div>`;
+      return;
+    }
+    const t = me.totals;
+    $main.innerHTML = `
+      <p class="qmeta"><span class="tag">最終結果</span></p>
+      <div class="card" style="width:100%">
+        <p class="note">あなたの結果</p>
+        <p class="big" style="font-size:2.6rem;color:var(--accent)">${t.total}<span style="font-size:.5em">点</span></p>
+        <div class="pts" style="margin-top:14px">
+          <div class="box"><div class="k">💎 少数派ポイント</div><div class="v">${t.minority}</div></div>
+          <div class="box"><div class="k">🎯 多数派予想ポイント</div><div class="v">${t.majority}</div></div>
+        </div>
+      </div>
+      <p class="note">上位3名は会場のスクリーンで発表します！<br>お疲れさまでした。</p>`;
+  };
+})();
+</script>
+</body>
+</html>

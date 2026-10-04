@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "$room": {
+      ".read": true,
+      ".write": "auth != null",
+      "answers": {
+        "$q": {
+          "$pid": {
+            ".validate": "newData.hasChildren(['own', 'guess']) && newData.child('own').isNumber() && newData.child('guess').isNumber()"
+          }
+        }
+      },
+      "players": {
+        "$pid": {
+          ".validate": "newData.hasChildren(['name']) && newData.child('name').isString() && newData.child('name').val().length <= 20"
+        }
+      }
+    }
+  }
+}

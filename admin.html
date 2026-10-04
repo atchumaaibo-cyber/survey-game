@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アンケートゲーム 管理</title>
+<style>
+  :root{--bg:#f4f5f9;--ink:#1e2233;--sub:#6b7188;--card:#fff;--accent:#ff8a3d;--blue:#3d8bff;--green:#1fa971;--red:#e8604c;--line:#e3e6ef}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);padding:0 0 calc(24px + env(safe-area-inset-bottom))}
+  .wrap{max-width:720px;margin:0 auto;padding:14px 14px 0;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  h1{font-size:1.1rem;color:var(--accent);display:flex;align-items:center;gap:10px}
+  h1 small{font-weight:600;color:var(--sub);font-size:.8rem}
+  h2{font-size:.85rem;color:var(--sub);margin-bottom:8px;letter-spacing:.04em}
+  .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .stat .b{background:#f7f8fc;border-radius:10px;padding:10px 6px;text-align:center}
+  .stat .k{font-size:.72rem;color:var(--sub);font-weight:700}
+  .stat .v{font-size:1.5rem;font-weight:900;line-height:1.2}
+  .stat .v small{font-size:.6em;color:var(--sub)}
+  .now{display:flex;flex-direction:column;gap:6px}
+  .now .ph{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;padding:3px 12px;font-size:.85rem;font-weight:800;align-self:flex-start}
+  .now .ph.open{background:var(--green)} .now .ph.closed{background:#888} .now .ph.result{background:var(--accent)} .now .ph.final{background:#9b5de5}
+  .now .q{font-size:1.15rem;font-weight:900;line-height:1.45}
+  .now .o{display:flex;flex-wrap:wrap;gap:6px;font-size:.9rem;font-weight:700;color:var(--sub)}
+  .now .o span{background:#f7f8fc;border-radius:8px;padding:4px 10px}
+  .now .o span.maj{background:#fff1e3;color:var(--accent)} .now .o span.min{background:#f1e6ff;color:#7b3fd0}
+  .btns{display:flex;flex-direction:column;gap:8px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:12px;font:inherit;font-weight:800;color:#fff;cursor:pointer;min-height:56px;font-size:1.1rem;background:var(--accent);box-shadow:0 3px 0 rgba(0,0,0,.12)}
+  .btn:active{transform:translateY(2px);box-shadow:none}
+  .btn:disabled{opacity:.4;box-shadow:none}
+  .btn.green{background:var(--green)} .btn.blue{background:var(--blue)} .btn.gray{background:#8a8f9f} .btn.purple{background:#9b5de5}
+  .btn.sub{background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:none;min-height:44px;font-size:.95rem}
+  .btn.danger{background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none;min-height:44px;font-size:.95rem}
+  .row{display:flex;gap:8px;align-items:center}
+  .row > *{flex:1}
+  select,input{font:inherit;padding:10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);width:100%}
+  .players{display:flex;flex-wrap:wrap;gap:6px}
+  .pl{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;background:#f7f8fc;border-radius:999px;padding:5px 10px;border:1.5px solid transparent}
+  .pl.ok{border-color:var(--green);background:#e9f8f1}
+  .pl.no{opacity:.55}
+  .pl .x{color:var(--sub);cursor:pointer;padding:0 2px}
+  .msg{font-size:.9rem;color:var(--red);font-weight:700;min-height:1.2em}
+  .hint{font-size:.82rem;color:var(--sub);line-height:1.6}
+  .links a{color:var(--blue);font-weight:700;font-size:.9rem;word-break:break-all}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
+  th{color:var(--sub);font-size:.75rem}
+  td.n{text-align:right;font-weight:800}
+  .hidden{display:none!important}
+  details summary{cursor:pointer;font-weight:800;color:var(--sub);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="card" id="auth">
+    <h2>管理キー</h2>
+    <p class="hint" id="authHint" style="margin-bottom:8px"></p>
+    <div class="row"><input id="key" type="text" placeholder="管理キー"><button class="btn blue" id="keyBtn" style="max-width:140px">接続</button></div>
+    <p class="msg" id="authMsg"></p>
+  </div>
+  <div id="panel" class="hidden">
+    <div class="card" style="margin-bottom:12px">
+      <h1>アンケートゲーム 管理 <small id="conn"></small></h1>
+      <div class="stat" style="margin-top:10px">
+        <div class="b"><div class="k">参加者</div><div class="v" id="sPlayers">0</div></div>
+        <div class="b"><div class="k">本番参加</div><div class="v" id="sEntered">0</div></div>
+        <div class="b"><div class="k">回答済み</div><div class="v" id="sAnswered">0</div></div>
+        <div class="b"><div class="k">問題</div><div class="v" id="sQ">-</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <h2>現在</h2>
+      <div class="now" id="now"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <h2>進行</h2>
+      <div class="btns" id="btns"></div>
+      <p class="msg" id="msg"></p>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <h2>参加者 <span id="plHint" style="font-weight:600"></span></h2>
+      <div class="players" id="players"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <details>
+        <summary>得点表（上位10名）</summary>
+        <table id="rank" style="margin-top:8px"></table>
+      </details>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <details>
+        <summary>問題ジャンプ・リセット</summary>
+        <div class="row" style="margin-top:10px"><select id="jump"></select><button class="btn sub" id="jumpBtn" style="max-width:140px">この問題へ</button></div>
+        <div class="btns" style="margin-top:10px">
+          <button class="btn sub" id="reopenBtn">回答受付をやり直す（締切取消）</button>
+          <button class="btn danger" id="resetBtn">全リセット（参加者・得点を消去）</button>
+        </div>
+      </details>
+    </div>
+    <div class="card links">
+      <h2>URL</h2>
+      <p>参加者: <a id="uJoin" target="_blank"></a></p>
+      <p>会場スクリーン: <a id="uScreen" target="_blank"></a></p>
+      <p class="hint" style="margin-top:6px">スクリーン用PCで上のURLを全画面表示（F11）してください。管理画面のURLは他の人に見せないでください。</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/questions.js"></script>
+<script src="js/store.js"></script>
+<script>
+(function(){
+  const { esc, LABELS } = Store;
+  const $ = id => document.getElementById(id);
+  let key = new URLSearchParams(location.search).get('key') || '';
+  try { if (!key) key = localStorage.getItem('sg_admin_key') || ''; } catch {}
+  let view = null;
+  let unlocked = false;
+
+  const dir = new URL('./', location.href).href;
+  $('uJoin').textContent = $('uJoin').href = dir;
+  $('uScreen').textContent = $('uScreen').href = dir + 'screen.html';
+  if (key) $('key').value = key;
+
+  // 管理キーは DB の config/adminKey に保存。未設定なら最初に開いた人が決める。
+  function tryUnlock(){
+    if (!view) return;
+    if (!view.admin.adminKeySet) {
+      $('authHint').textContent = '管理キーが未設定です。好きな文字列（4文字以上）を決めて「設定して接続」を押すと、それが管理キーになります。';
+      $('keyBtn').textContent = '設定して接続';
+      return;
+    }
+    $('authHint').textContent = '';
+    $('keyBtn').textContent = '接続';
+    if (key && Store.checkKey(key)) {
+      unlocked = true;
+      try { localStorage.setItem('sg_admin_key', key); } catch {}
+      $('auth').classList.add('hidden'); $('panel').classList.remove('hidden');
+      render();
+    } else if (key) {
+      $('authMsg').textContent = '管理キーが違います';
+    }
+  }
+  $('keyBtn').onclick = async () => {
+    key = $('key').value.trim(); $('authMsg').textContent = '';
+    if (!key) return;
+    if (view && !view.admin.adminKeySet) {
+      try { await Store.admin.setAdminKey(key); } catch (e) { $('authMsg').textContent = e.message; return; }
+      return; // DB 更新の通知で tryUnlock が走る
+    }
+    tryUnlock();
+  };
+  $('key').addEventListener('keydown', e => { if (e.key === 'Enter') $('keyBtn').click(); });
+
+  (async () => {
+    try { Store.init(); await Store.signIn(); }
+    catch (e) { $('authMsg').textContent = e.message; return; }
+    Store.subscribe('admin', v => {
+      view = v;
+      $('conn').textContent = '● 接続中';
+      if (!unlocked) tryUnlock(); else render();
+    }, err => { $('conn').textContent = err ? '● 切断（再接続中）' : '● 接続中'; });
+  })();
+
+  async function act(action, body){
+    $('msg').textContent = '';
+    if (!Store.checkKey(key)) { $('msg').textContent = '管理キーが違います'; return; }
+    try { await Store.admin.run(action, body || {}); }
+    catch (e) { $('msg').textContent = e.message; }
+  }
+
+  function qLabel(pub){ return pub.stage === 'practice' ? '練習問題' : (pub.qIndex >= 0 ? `第${pub.qIndex + 1}問 / ${pub.totalQuestions}` : '本番参加受付'); }
+  const PH = { idle:'受付前', open:'回答受付中', closed:'締切・集計中', result:'結果表示中', final:'最終ランキング' };
+
+  function render(){
+    const pub = view.public, ad = view.admin;
+    $('sPlayers').textContent = pub.counts.players;
+    $('sEntered').textContent = pub.counts.entered;
+    $('sAnswered').innerHTML = pub.question ? `${pub.counts.answered}<small>/${pub.counts.eligible}</small>` : '-';
+    $('sQ').innerHTML = pub.stage === 'main' && pub.qIndex >= 0 ? `${pub.qIndex + 1}<small>/${pub.totalQuestions}</small>` : (pub.stage === 'practice' ? '練習' : '-');
+
+    // 現在
+    let now = `<span class="ph ${pub.phase}">${qLabel(pub)}　${PH[pub.phase]}</span>`;
+    if (pub.question) {
+      const r = pub.result;
+      now += `<div class="q">${esc(pub.question.text)}</div><div class="o">` + pub.question.options.map((o,i) => {
+        const cls = r ? (r.majority.includes(i) ? 'maj' : r.minority.includes(i) ? 'min' : '') : '';
+        const cnt = r ? ` ${r.counts[i]}人` : '';
+        return `<span class="${cls}">${LABELS[i]}. ${esc(o)}${cnt}</span>`;
+      }).join('') + '</div>';
+      if (r) now += `<p class="hint">👑 多数派: ${r.majority.map(i=>LABELS[i]).join('・')||'なし'}　💎 少数派: ${r.minority.map(i=>LABELS[i]).join('・')||'なし'}</p>`;
+    } else if (pub.stage === 'main' && pub.qIndex < 0) {
+      now += `<div class="q">参加者のスマホに「本番に参加する」ボタンが出ています</div><p class="hint">本番参加 ${pub.counts.entered} / ${pub.counts.players} 人。押した人だけが得点対象になります。</p>`;
+    } else if (pub.phase === 'final') {
+      now += `<div class="q">最終ランキング表示中（${pub.finalReveal} / ${(pub.ranking||[]).length} 段階 開示）</div>`;
+    }
+    $('now').innerHTML = now;
+
+    // 進行ボタン
+    const b = [];
+    const B = (label, action, cls='', body) => b.push(`<button class="btn ${cls}" data-a="${action}" data-b='${body?JSON.stringify(body):''}'>${label}</button>`);
+    const last = pub.stage === 'main' && pub.qIndex >= pub.totalQuestions - 1;
+    if (pub.phase === 'final') {
+      const n = (pub.ranking||[]).length;
+      if (pub.finalReveal < n) B(`次の順位を表示（${pub.finalReveal+1} / ${n}）`, 'final_next', 'purple');
+      else B('発表完了 🎉', 'noop', 'gray');
+      if (pub.finalReveal > 0) B('ひとつ戻す', 'final_back', 'sub');
+    } else if (pub.stage === 'practice') {
+      if (pub.phase === 'idle') B('練習問題 回答受付開始', 'start_practice', 'green');
+      if (pub.phase === 'open') B('回答締切', 'close', 'gray');
+      if (pub.phase === 'closed') B('結果発表（グラフ）', 'reveal');
+      if (pub.phase === 'result') B('練習終了 → 本番参加の受付へ', 'to_main', 'blue');
+      if (pub.phase !== 'idle') B('練習をやり直す', 'start_practice', 'sub');
+    } else if (pub.qIndex < 0) {
+      B('第1問へ', 'next', 'blue');
+    } else {
+      if (pub.phase === 'idle') B('回答受付開始', 'open', 'green');
+      if (pub.phase === 'open') B('回答締切', 'close', 'gray');
+      if (pub.phase === 'closed') B('結果発表（グラフ）', 'reveal');
+      if (pub.phase === 'result') { if (!last) B(`次の問題へ（第${pub.qIndex+2}問）`, 'next', 'blue'); else B('最終ランキング表示へ', 'final', 'purple'); }
+      if (!(last && pub.phase === 'result')) B('最終ランキング表示へ（残りの問題をスキップ）', 'final', 'sub');
+    }
+    $('btns').innerHTML = b.join('');
+    $('btns').querySelectorAll('button').forEach(el => el.onclick = () => {
+      const a = el.dataset.a; if (a === 'noop') return;
+      if (a === 'reset') return;
+      act(a, el.dataset.b ? JSON.parse(el.dataset.b) : {});
+    });
+
+    // 参加者
+    $('plHint').textContent = pub.question ? '（緑＝回答済み）' : '';
+    $('players').innerHTML = ad.players.map(p =>
+      `<span class="pl ${pub.question && p.eligible ? (p.answered ? 'ok' : '') : ''} ${pub.stage==='main' && !p.entered ? 'no' : ''}" title="${p.entered?'本番参加':'未参加'}">${p.entered?'':'👀 '}${esc(p.name)}${pub.stage==='main'&&p.entered?` <small>${p.total}点</small>`:''}<span class="x" data-id="${p.id}" title="削除">✕</span></span>`
+    ).join('') || '<span class="hint">まだ誰も参加していません</span>';
+    $('players').querySelectorAll('.x').forEach(el => el.onclick = () => { const p = ad.players.find(x => x.id === el.dataset.id); if (confirm(`「${p.name}」を削除しますか？`)) act('kick', { pid: p.id }); });
+
+    // 得点表
+    $('rank').innerHTML = '<tr><th>順位</th><th>名前</th><th>💎</th><th>🎯</th><th>合計</th></tr>' + ad.ranking.map(r => `<tr><td>${r.rank}</td><td>${esc(r.name)}</td><td class="n">${r.minority}</td><td class="n">${r.majority}</td><td class="n">${r.total}</td></tr>`).join('');
+
+    // ジャンプ
+    const sel = $('jump');
+    if (sel.options.length !== ad.questions.length + 1) {
+      sel.innerHTML = `<option value="-1">本番参加受付（第1問の前）</option>` + ad.questions.map(q => `<option value="${q.index}">第${q.index+1}問 ${esc(q.text)}</option>`).join('');
+    }
+  }
+
+  $('jumpBtn').onclick = () => { const i = Number($('jump').value); if (confirm(`${i<0?'本番参加受付':'第'+(i+1)+'問'} に移動しますか？`)) act('goto', { qIndex: i }); };
+  $('reopenBtn').onclick = () => { if (confirm('この問題の締切を取り消して回答受付に戻しますか？（集計はやり直されます）')) act('reopen'); };
+  $('resetBtn').onclick = () => { if (confirm('本当に全リセットしますか？ 参加者・回答・得点がすべて消えます。')) { if (confirm('取り消せません。実行しますか？')) act('reset'); } };
+})();
+</script>
+</body>
+</html>

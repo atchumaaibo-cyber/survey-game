@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>アンケートゲーム 会場スクリーン</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   :root{
     --bg1:#141a33; --bg2:#0b0f22; --ink:#fff; --sub:#aab3d6; --accent:#ffb347;
@@ -13,13 +15,18 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;overflow:hidden}
   body{
-    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;
-    color:var(--ink);background:radial-gradient(ellipse at 50% 0%,var(--bg1),var(--bg2) 70%);
+    font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Segoe UI",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 1px 1px,rgba(255,255,255,.07) 1px,transparent 0) 0 0/3.2vh 3.2vh,
+      radial-gradient(60vh 40vh at 12% 8%,rgba(255,179,71,.14),transparent 70%),
+      radial-gradient(70vh 50vh at 92% 92%,rgba(78,205,196,.12),transparent 70%),
+      radial-gradient(ellipse at 50% 0%,var(--bg1),var(--bg2) 70%);
     display:flex;flex-direction:column;
   }
   .top{display:flex;align-items:center;justify-content:space-between;padding:2vh 4vw 0;font-weight:800;font-size:2.4vh;color:var(--sub)}
-  .top .brand{color:var(--accent);letter-spacing:.06em}
-  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2vh 5vw 4vh;gap:3vh;text-align:center}
+  .top .brand{color:var(--accent);letter-spacing:.12em}
+  .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2vh 22vh 4vh;gap:3vh;text-align:center}
   .hidden{display:none!important}
 
   .h1{font-size:9vh;font-weight:900;line-height:1.2;letter-spacing:.02em}
@@ -27,11 +34,11 @@
   .sub{font-size:3.2vh;color:var(--sub);font-weight:700;line-height:1.6}
   .tag{display:inline-block;background:var(--accent);color:#1b1230;border-radius:999px;padding:.6vh 3vh;font-size:3.4vh;font-weight:900}
   .tag.practice{background:var(--cB)}
-  .qtext{font-size:7vh;font-weight:900;line-height:1.35;max-width:90vw;text-wrap:balance}
+  .qtext{font-size:7vh;font-weight:900;line-height:1.35;max-width:100%;text-wrap:balance}
   .qtext.small{font-size:5.2vh}
 
-  .opts{display:grid;grid-template-columns:1fr 1fr;gap:2vh 3vw;width:min(90vw,150vh)}
-  .opt{display:flex;align-items:center;gap:2vw;background:rgba(255,255,255,.07);border:.4vh solid rgba(255,255,255,.12);border-radius:3vh;padding:2.4vh 3vw;font-size:4.6vh;font-weight:900;text-align:left}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:2vh 3vw;width:min(100%,150vh)}
+  .opt{display:flex;align-items:center;gap:2vw;background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:.3vh solid rgba(255,255,255,.14);border-radius:3vh;box-shadow:0 1vh 3vh rgba(0,0,0,.25);backdrop-filter:blur(6px);padding:2.4vh 3vw;font-size:4.6vh;font-weight:900;text-align:left}
   .opt .lbl{flex:0 0 7vh;height:7vh;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#1b1230;font-size:4vh}
   .cA{background:var(--cA)} .cB{background:var(--cB)} .cC{background:var(--cC)} .cD{background:var(--cD)} .cE{background:var(--cE)} .cF{background:var(--cF)}
 
@@ -47,7 +54,7 @@
   .url{font-size:3.6vh;font-weight:800;word-break:break-all;color:#fff}
 
   /* グラフ */
-  .chart{display:flex;align-items:flex-end;justify-content:center;gap:4vw;height:52vh;width:min(92vw,170vh);padding:0 2vw}
+  .chart{display:flex;align-items:flex-end;justify-content:center;gap:4vw;height:52vh;width:min(100%,170vh);padding:0 2vw}
   .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:1.2vh;min-width:0}
   .col .pct{font-size:5.5vh;font-weight:900;line-height:1;min-height:6vh}
   .col .barw{width:100%;flex:1;display:flex;align-items:flex-end;border-bottom:.5vh solid rgba(255,255,255,.25)}
@@ -64,7 +71,7 @@
   .verdict .maj{color:var(--maj)} .verdict .min{color:var(--min)}
 
   /* 最終ランキング */
-  .rank{display:flex;flex-direction:column;gap:2.5vh;width:min(90vw,140vh)}
+  .rank{display:flex;flex-direction:column;gap:2.5vh;width:min(100%,140vh)}
   .rk{display:flex;align-items:center;gap:3vw;background:rgba(255,255,255,.07);border-radius:3vh;padding:2.5vh 4vw;opacity:0;transform:translateY(3vh) scale(.96);transition:opacity .7s,transform .7s}
   .rk.show{opacity:1;transform:none}
   .rk .pos{font-size:7vh;font-weight:900;flex:0 0 18vh;text-align:center}
@@ -87,7 +94,6 @@
   #qrMini{width:17vh;height:17vh}
   #qrMini img,#qrMini canvas{display:block;width:17vh;height:17vh}
   .miniqr p{font-size:1.9vh;font-weight:900}
-  body.withqr .stage{padding-right:24vh}
   .offline{position:fixed;top:1vh;left:50%;transform:translateX(-50%);background:#e8604c;color:#fff;font-weight:800;padding:.6vh 2vh;border-radius:999px;font-size:2.2vh}
 </style>
 </head>
@@ -141,7 +147,6 @@
     if (screen === 'entry') { const c = document.getElementById('cnt'); if (c) c.innerHTML = `本番参加 <b>${pub.counts.entered}</b>人`; }
     const showMini = !['lobby', 'entry'].includes(screen);   // 大きいQRがない画面では右下に常に出す
     document.getElementById('miniQr').classList.toggle('hidden', !showMini);
-    document.body.classList.toggle('withqr', showMini);
     $topR.textContent = pub.stage === 'main' && pub.qIndex >= 0 && pub.phase !== 'final' ? `${pub.qIndex + 1} / ${pub.totalQuestions}` : '';
 
     const key = [screen, pub.stage, pub.qIndex, screen === 'final' ? pub.finalReveal : ''].join('|');
@@ -170,7 +175,7 @@
   R.entry = () => {
     $stage.innerHTML = `
       <h1 class="h2">本番に参加する人は<br>スマホの「本番に参加する」を押してください</h1>
-      <div class="opts" style="width:min(90vw,150vh);grid-template-columns:1fr 1fr">
+      <div class="opts" style="grid-template-columns:1fr 1fr">
         <div class="opt" style="font-size:4vh;justify-content:center"><span class="lbl cD">💎</span>自分が少数派 → 1点</div>
         <div class="opt" style="font-size:4vh;justify-content:center"><span class="lbl cC">🎯</span>多数派を当てる → 1点</div>
       </div>

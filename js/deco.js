@@ -8,16 +8,15 @@
     { kind: 'photo', src: 'img/yuma.jpg' },
     { kind: 'photo', src: 'img/yuma1.jpg' },
     { kind: 'cutout', src: 'img/banauta.png' },
-    { kind: 'photo', src: 'img/yuma_tongue.jpg', video: 'img/yuma_tongue.mp4' },
+    { kind: 'photo', src: 'img/yuma_tongue.jpg' },
     { kind: 'photo', src: 'img/yuma3.jpg' },
     { kind: 'photo', src: 'img/yuma4.jpg' },
-    { kind: 'photo', src: 'img/yuma5.jpg' },
   ];
   // スクリーンでの置き場所（画面の端だけ。left/top は %、size は vh、r は傾き）
   const SLOTS = [
     { l: 1.5, t: 9, s: 19, r: -7 }, { l: 2, t: 40, s: 14, r: 5 }, { l: 1, t: 68, s: 15, r: -4 },
     { l: 89, t: 8, s: 14, r: 6 }, { l: 90.5, t: 36, s: 19, r: -5 }, { l: 13, t: 84, s: 12, r: 8 },
-    { l: 76, t: 1.5, s: 11, r: -8 }, { l: 18, t: 1, s: 10, r: 4 },
+    { l: 76, t: 1.5, s: 11, r: -8 },
   ];
 
   function make(c, sizeCss, rot, delay) {

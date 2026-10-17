@@ -139,7 +139,17 @@ window.Store = (function () {
       answer: a ? { own: a.own, guess: a.guess } : null,
       result: s.phase === 'result' ? pointsOf(uid, key) : null,
       totals: totalsOf(uid),
+      final: s.phase === 'final' && p.entered ? myFinal(uid) : null,
     };
+  }
+  // 最終順位。3位以内はスクリーンでその順位が発表されるまで伏せる（rank: null）
+  function myFinal(pid) {
+    const row = ranking().find(r => r.id === pid);
+    if (!row) return null;
+    const groups = topGroups(), s = st();
+    const gi = groups.findIndex(g => g.rank === row.rank);
+    const revealed = gi < 0 || (groups.length - 1 - gi) < (s.finalReveal || 0);
+    return { rank: revealed ? row.rank : null, players: ranking().length };
   }
   function adminView() {
     const s = st(), ans = answers()[qKey()] || {};
@@ -175,7 +185,12 @@ window.Store = (function () {
       if (!name) throw new Error('名前を入力してください');
       const cur = players()[uid];
       if (cur) await ref('players/' + uid + '/name').set(name);
-      else await ref('players/' + uid).set({ name, joinedAt: firebase.database.ServerValue.TIMESTAMP, entered: false });
+      else {
+        // 本番中に QR から入った人は、その問題からそのまま本番参加（それまでの問題は0点）
+        const s = st();
+        const entered = s.stage === 'main' && s.phase !== 'final';
+        await ref('players/' + uid).set({ name, joinedAt: firebase.database.ServerValue.TIMESTAMP, entered });
+      }
     },
     async answer(own, guess) {
       const p = players()[uid];

@@ -21,7 +21,7 @@
     color:var(--ink);background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 100%);
     background-attachment:fixed;touch-action:manipulation;-webkit-text-size-adjust:100%;
   }
-  #app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
+  #app{position:relative;z-index:1;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:0 16px calc(24px + env(safe-area-inset-bottom))}
   .bar{display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) 0 10px;font-weight:800}
   .bar .brand{color:var(--accent);font-size:.95rem}
   .bar .who{flex:1;text-align:right;font-size:.9rem;color:var(--ink-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -134,12 +134,14 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/questions.js"></script>
 <script src="js/store.js"></script>
+<script src="js/deco.js"></script>
 <script>
 (function(){
   const { esc, LABELS } = Store;
   const $main = document.getElementById('main');
   const $who = document.getElementById('who');
   const $score = document.getElementById('score');
+  Deco.place('phone');
 
   let name = '';
   try { name = localStorage.getItem('sg_name') || ''; } catch {}
@@ -192,7 +194,7 @@
     else if (pub.phase === 'result') screen = 'result';
     else screen = 'wait_q';
 
-    const key = [screen, pub.stage, pub.qIndex, pub.finalReveal, me && me.entered, me && me.totals.total].join('|');
+    const key = [screen, pub.stage, pub.qIndex, pub.finalReveal, me && me.entered, me && me.totals.total, me && me.final && me.final.rank].join('|');
     if (key === lastKey) return;
     lastKey = key;
     if (screen !== 'question') editing = false;
@@ -263,23 +265,26 @@
         ${opts('guess')}
       </div>
       <p id="err" class="err"></p>
-      <button id="sendBtn" class="btn btn-primary btn-big" ${sel.own===null||sel.guess===null?'disabled':''}>${editing?'回答を変更する':'回答する'}</button>
+      <p class="note" style="text-align:center">①と②を両方タップすると、そのまま回答になります</p>
       ${editing?'<button class="btn btn-sub" id="cancelBtn">変更をやめる</button>':''}`;
-    $main.querySelectorAll('.opt').forEach(b => b.onclick = () => {
-      const k = b.dataset.k, i = Number(b.dataset.i);
-      sel[k] = i;
-      $main.querySelectorAll(`.opt[data-k=${k}]`).forEach(x => x.classList.toggle('on', Number(x.dataset.i)===i));
-      document.getElementById('sendBtn').disabled = !(sel.own!==null && sel.guess!==null);
-    });
-    document.getElementById('sendBtn').onclick = async () => {
-      const btn = document.getElementById('sendBtn'); btn.disabled = true;
+    let sending = false;
+    // ①②がそろった時点で送信（回答ボタンなし）
+    const send = async () => {
+      if (sending || sel.own===null || sel.guess===null) return;
+      sending = true;
       try {
         await Store.player.answer(sel.own, sel.guess);
         editing = false; lastKey = null;
         // 状態配信で回答済み画面に切り替わる（念のため即描画）
         if (view) { view.me.answer = { own: sel.own, guess: sel.guess }; render(); }
-      } catch (e) { document.getElementById('err').textContent = e.message; btn.disabled = false; }
+      } catch (e) { document.getElementById('err').textContent = e.message; sending = false; }
     };
+    $main.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+      const k = b.dataset.k, i = Number(b.dataset.i);
+      sel[k] = i;
+      $main.querySelectorAll(`.opt[data-k=${k}]`).forEach(x => x.classList.toggle('on', Number(x.dataset.i)===i));
+      send();
+    });
     const c = document.getElementById('cancelBtn');
     if (c) c.onclick = () => { editing = false; lastKey = null; render(); };
   };
@@ -403,11 +408,16 @@
       $main.innerHTML = `<div class="card" style="width:100%"><p class="big">ゲーム終了！</p><p class="note" style="margin-top:10px;font-size:1rem">ご参加ありがとうございました。<br>結果発表は会場のスクリーンをご覧ください。</p></div>`;
       return;
     }
-    const t = me.totals;
+    const t = me.totals, f = me.final;
+    const rankHtml = !f ? ''
+      : f.rank ? `<p class="big" style="font-size:3.2rem;color:var(--rare);line-height:1.2">${f.rank}<span style="font-size:.5em">位</span>${f.rank <= 3 ? ' 🎉' : ''}</p><p class="note">${f.players}人中</p>`
+      : `<p class="big">順位は… <span class="pulse">？</span></p><p class="note">会場のスクリーンで発表中！</p>`;
     $main.innerHTML = `
       <p class="qmeta"><span class="tag">最終結果</span></p>
       <div class="card" style="width:100%">
-        <p class="note">あなたの結果</p>
+        <p class="note">あなたの順位</p>
+        ${rankHtml}
+        <p class="note" style="margin-top:12px">あなたの得点</p>
         <p class="big" style="font-size:2.6rem;color:var(--accent)">${t.total}<span style="font-size:.5em">点</span></p>
         <div class="pts" style="margin-top:14px">
           <div class="box"><div class="k">💎 少数派ポイント</div><div class="v">${t.minority}</div></div>

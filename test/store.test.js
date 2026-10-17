@@ -149,12 +149,18 @@ function makeClient(db, uid, role) {
 
   // ---------- 第3問: 全員同じ → 少数派なし。締切取消も確認
   await A('next'); await A('open');
+  // 第3問の途中で QR から新しく参加 → 自動で本番参加になり、この問題から回答できる
+  const late = await makeClient(db, 'p6', 'player');
+  await late.S.player.join('おくれて');
+  assert.strictEqual(late.view.me.entered, true);
+  await late.S.player.answer(3, 3);
   for (let i = 0; i < 5; i++) await P[i].S.player.answer(3, 3);
   await A('close'); await A('reveal');
   assert.deepStrictEqual(screen.view.public.result.minority, []);
   await A('reopen');
   assert.strictEqual(screen.view.public.phase, 'open'); assert.strictEqual(screen.view.public.result, null);
   await A('close'); await A('reveal');
+  assert.strictEqual(late.view.me.totals.total, 1);   // 第3問の多数派予想だけ（それまでは0点）
   console.log('Q3 OK');
 
   // ---------- 最終
@@ -162,16 +168,22 @@ function makeClient(db, uid, role) {
   const groups = screen.view.public.ranking;
   console.log('ranking groups:', JSON.stringify(groups));
   assert.ok(groups.length >= 1 && groups[0].rank === 1 && groups.every(g => g.rank <= 3));
+  // 個人画面の順位: 3位以内は発表前は伏せる、4位以下はすぐ出る
+  const topId = 'p' + names.indexOf(groups[0].players[0].name);
+  const topC = P.find(c => c.uid === topId);
+  assert.strictEqual(topC.view.me.final.rank, null);
+  assert.strictEqual(late.view.me.final.rank > 3, true);
   for (let i = 0; i < 6; i++) await A('final_next');
+  assert.strictEqual(topC.view.me.final.rank, 1);
   assert.strictEqual(screen.view.public.finalReveal, groups.length);
   await A('final_back');
   assert.strictEqual(screen.view.public.finalReveal, groups.length - 1);
   assert.strictEqual(admin.view.admin.ranking[0].rank, 1);
-  assert.strictEqual(admin.view.admin.players.length, 6);
+  assert.strictEqual(admin.view.admin.players.length, 7);
 
   // ---------- kick / reset
   await A('kick', { pid: 'p5' });
-  assert.strictEqual(admin.view.admin.players.length, 5);
+  assert.strictEqual(admin.view.admin.players.length, 6);
   await A('reset');
   assert.strictEqual(admin.view.admin.players.length, 0);
   assert.strictEqual(admin.view.admin.adminKeySet, true);   // キーは残る

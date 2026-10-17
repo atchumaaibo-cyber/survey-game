@@ -81,6 +81,13 @@
   .fx{position:fixed;inset:0;pointer-events:none;overflow:hidden}
   .fx i{position:absolute;top:-4vh;width:1.6vh;height:1.6vh;border-radius:.3vh;animation:fall linear forwards}
   @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+  .top,.stage{position:relative;z-index:1}
+  /* 右下に常に出す小さいQR（大きいQRが出ていない画面だけ） */
+  .miniqr{position:fixed;right:2vh;bottom:2vh;z-index:2;display:flex;flex-direction:column;align-items:center;gap:.6vh;background:#fff;color:#1b1230;padding:1.4vh;border-radius:1.6vh;box-shadow:0 1vh 3vh rgba(0,0,0,.35)}
+  #qrMini{width:17vh;height:17vh}
+  #qrMini img,#qrMini canvas{display:block;width:17vh;height:17vh}
+  .miniqr p{font-size:1.9vh;font-weight:900}
+  body.withqr .stage{padding-right:24vh}
   .offline{position:fixed;top:1vh;left:50%;transform:translateX(-50%);background:#e8604c;color:#fff;font-weight:800;padding:.6vh 2vh;border-radius:999px;font-size:2.2vh}
 </style>
 </head>
@@ -89,6 +96,7 @@
 <div id="stage" class="stage"></div>
 <div id="fx" class="fx"></div>
 <div id="off" class="offline hidden">接続が切れました… 再接続中</div>
+<div id="miniQr" class="miniqr hidden"><div id="qrMini"></div><p>途中参加OK</p></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -97,6 +105,7 @@
 <script src="js/firebase-config.js"></script>
 <script src="js/questions.js"></script>
 <script src="js/store.js"></script>
+<script src="js/deco.js"></script>
 <script>
 (function(){
   const { esc, LABELS } = Store;
@@ -108,6 +117,9 @@
   let pub = null;
 
   const joinUrl = new URL('./', location.href).href;   // このページと同じフォルダの index.html
+  Deco.place('screen');
+  // 小さいQRは最初に1回だけ描いておき、画面に応じて出し入れする
+  if (typeof QRCode !== 'undefined') new QRCode(document.getElementById('qrMini'), { text: joinUrl, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
   (async () => {
     try { Store.init(); await Store.signIn(); }
     catch (e) { $stage.innerHTML = `<p class="h2">設定エラー</p><p class="sub">${esc(e.message)}</p>`; return; }
@@ -127,6 +139,9 @@
     if (screen === 'open') { const c = document.getElementById('cnt'); if (c) c.innerHTML = `<b>${pub.counts.answered}</b> / ${pub.counts.eligible}人`; }
     if (screen === 'lobby') { const c = document.getElementById('cnt'); if (c) c.innerHTML = `参加者 <b>${pub.counts.players}</b>人`; }
     if (screen === 'entry') { const c = document.getElementById('cnt'); if (c) c.innerHTML = `本番参加 <b>${pub.counts.entered}</b>人`; }
+    const showMini = !['lobby', 'entry'].includes(screen);   // 大きいQRがない画面では右下に常に出す
+    document.getElementById('miniQr').classList.toggle('hidden', !showMini);
+    document.body.classList.toggle('withqr', showMini);
     $topR.textContent = pub.stage === 'main' && pub.qIndex >= 0 && pub.phase !== 'final' ? `${pub.qIndex + 1} / ${pub.totalQuestions}` : '';
 
     const key = [screen, pub.stage, pub.qIndex, screen === 'final' ? pub.finalReveal : ''].join('|');
